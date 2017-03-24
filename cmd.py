@@ -9,9 +9,26 @@ from ctypes import c_char, c_char_p
 import subprocess
 import json
 import os
-
+import os.path
 MAX_OUTPUT = 100 * 1024
-
+def getConf(key):
+    cpath=os.path.expanduser('~')+"/.config/lighthouse/beacon.conf"
+    if not os.path.isfile(cpath):
+        f=open(cpath,"w")
+        f.write("{}")
+        f.close()
+    f=open(cpath,"r")
+    cfgraw=f.read()
+    f.close()
+    cfg=json.loads(cfgraw)
+    if key in cfg:
+        return cfg[key]
+    else:
+        if not key in warnings:
+            addkey="zenity --entry --title=\"beacon\" --text=\""+key+" is missing from your config please set it\" | python config.py \""+key+"\""
+            append_output("add config '"+key+"'",addkey)
+            warnings[key]=True
+warnings={}
 resultStr = Array(c_char, MAX_OUTPUT);
 
 def clear_output():
@@ -139,7 +156,7 @@ special = {
 while 1:
     userInput = sys.stdin.readline()
     userInput = userInput[:-1]
-
+    warnings={}
     # Clear results
     clear_output()
 
@@ -153,33 +170,27 @@ while 1:
         continue
 
     try:
-        pass
-        #complete = subprocess.check_output("compgen -c %s" % (userInput),
-         #                                      shell=True, executable="/bin/bash")
-        #complete = complete.split('\n')
+        #pass
+        complete = subprocess.check_output("compgen -c %s" % (userInput),
+                                              shell=True, executable="/bin/bash")
+        complete = complete.split('\n')
 
-        #for cmd_num in range(min(len(complete), 5)):
-                # Look for XDG applications of the given name.
-        #        xdg_cmd = get_xdg_cmd(complete[cmd_num])
-        #        if xdg_cmd:
-        #            append_output(*xdg_cmd)
-
+        for cmd_num in range(min(len(complete), 5)):
+               # Look for XDG applications of the given name.
+                xdg_cmd = get_xdg_cmd(complete[cmd_num])
+                if xdg_cmd:
+                    append_output(*xdg_cmd)
     except:
-        # if no command exist with the user input
-        # but it can still be python or a special bash command
         pass
-
     finally:
-        # Scan for keywords
         for keyword in special:
             if userInput[0:len(keyword)] == keyword:
                 out = special[keyword](userInput)
                 if out is not None:
                     prepend_output(*out)
-
         # Could be a command...
         append_output("execute '"+userInput+"'", userInput)
-
+        getConf("browser")
         # Could be bash...
         #append_output("run '%s' in a shell" % (userInput),
         #              "terminator -e %s" % (userInput))
@@ -209,5 +220,4 @@ while 1:
         # Spawn worker threads
         find_thr = Process(target=find, args=(userInput,))
         find_thr.start()
-
         update_output()
