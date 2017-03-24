@@ -13,6 +13,7 @@ cfgraw=f.read()
 f.close()
 cfg=json.loads(cfgraw)
 cfg[key]=val
+#print (cfg)
 f=open(cfgpath,"w")
 f.write(json.dumps(cfg))
 f.close()

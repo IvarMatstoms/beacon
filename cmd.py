@@ -10,6 +10,7 @@ import subprocess
 import json
 import os
 import os.path
+import re
 MAX_OUTPUT = 100 * 1024
 def getConf(key):
     cpath=os.path.expanduser('~')+"/.config/lighthouse/beacon.conf"
@@ -25,9 +26,21 @@ def getConf(key):
         return cfg[key]
     else:
         if not key in warnings:
-            addkey="zenity --entry --title=\"beacon\" --text=\""+key+" is missing from your config please set it\" | python config.py \""+key+"\""
+            #addkey="zenity --entry --title=\"beacon\" --text=\"enter value of '"+key+"'\" | python "+os.path.expanduser('~')+"/.config/lighthouse/config.py \""+key+"\""
+            addkey=getConfKey(key)
             append_output("add config '"+key+"'",addkey)
             warnings[key]=True
+        return 
+def getConfKey(key):
+    addkey="zenity --entry --title=\"beacon\" --text=\"enter value of '"+key+"'\" | python "+os.path.expanduser('~')+"/.config/lighthouse/config.py \""+key+"\""
+    return addkey        
+def openUrl(url):
+    browser=getConf("browser")
+    if browser:
+        cmd=browser+ " '"+url+"'"
+    else:
+        cmd=getConfKey("browser")
+    return cmd
 warnings={}
 resultStr = Array(c_char, MAX_OUTPUT);
 
@@ -190,11 +203,14 @@ while 1:
                     prepend_output(*out)
         # Could be a command...
         append_output("execute '"+userInput+"'", userInput)
-        getConf("browser")
+        #getConf("browser")
         # Could be bash...
         #append_output("run '%s' in a shell" % (userInput),
         #              "terminator -e %s" % (userInput))
-        
+        #Yeah i know its not how its done -.-
+        if len(re.findall("^(?:(?:https|http|ftp)://){0,1}(?:[\w0-9]+\.)+[\w0-9]+.*$",userInput))>0:
+            append_output("open in browser",openUrl(userInput))
+
         append_output("run '%s' in a shell" % (userInput),"gnome-terminal -e \"bash -c \\\" %s  && read && exit \\\"\"" % (userInput))
         # Is this python?
         try:
